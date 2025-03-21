@@ -8,7 +8,7 @@ run_benchmarks() {
 }
 
 # List of installed Python and PyPy versions (full implementation names)
-PYTHON_VERSIONS=("python3.9" "python3.12" "python3.13" "pypy3.9" "pypy3.11")  # Add other versions as needed
+PYTHON_VERSIONS=("python3.9" "python3.12" "python3.13")  # Add other versions as needed
 
 # Iterate over each installed Python or PyPy version and run the benchmarks
 for VERSION in "${PYTHON_VERSIONS[@]}"; do
