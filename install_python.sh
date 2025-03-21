@@ -85,6 +85,12 @@ install_pypy() {
     fi
 }
 
+run_benchmarks() {
+    PYTHON_VERSION=$1
+    PYTHON_PATH=$2 
+    $PYTHON_VERSION -m pyperformance run --benchmarks=2to3,chameleon,tornado_http --python=$PYTHON_PATH -o $PYTHON_VERSION.json
+}
+
 # Install Python 3.9
 install_python "3.9.15"
 
