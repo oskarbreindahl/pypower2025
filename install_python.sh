@@ -8,33 +8,40 @@ install_python() {
     # Check if the version is already installed
     if command -v $PYTHON_BIN &>/dev/null; then
         echo "$PYTHON_BIN is already installed."
-        return
+    else
+        echo "Installing Python $VERSION..."
+
+        # Update package list
+        sudo apt update
+
+        # Install dependencies
+        sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev curl
+
+        # Download and install the specified Python version
+        cd /tmp
+        curl -O https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
+        tar -xvzf Python-$VERSION.tgz
+        cd Python-$VERSION
+        ./configure --enable-optimizations
+        make -j "$(nproc)"
+        sudo make altinstall
+
+        # Clean up
+        cd ..
+        rm -rf Python-$VERSION
+        rm Python-$VERSION.tgz
+
+        # Verify the installation
+        $PYTHON_BIN --version
     fi
 
-    echo "Installing Python $VERSION..."
-
-    # Update package list
-    sudo apt update
-
-    # Install dependencies
-    sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev curl
-
-    # Download and install the specified Python version
-    cd /tmp
-    curl -O https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
-    tar -xvzf Python-$VERSION.tgz
-    cd Python-$VERSION
-    ./configure --enable-optimizations
-    make -j "$(nproc)"
-    sudo make altinstall
-
-    # Clean up
-    cd ..
-    rm -rf Python-$VERSION
-    rm Python-$VERSION.tgz
-
-    # Verify the installation
-    $PYTHON_BIN --version
+    # Install pyperformance if not already installed for the specific Python version
+    if ! $PYTHON_BIN -m pip show pyperformance &>/dev/null; then
+        echo "Installing pyperformance for $PYTHON_BIN..."
+        $PYTHON_BIN -m pip install pyperformance
+    else
+        echo "pyperformance is already installed for $PYTHON_BIN."
+    fi
 }
 
 # Function to install PyPy
@@ -46,29 +53,36 @@ install_pypy() {
     # Check if PyPy is already installed
     if command -v $PYPY_BIN &>/dev/null; then
         echo "$PYPY_BIN is already installed."
-        return
+    else
+        echo "Installing PyPy $PYPY_VERSION for Python $PYTHON_VERSION..."
+
+        # PyPy URL with version numbers for Python and PyPy
+        URL="https://downloads.python.org/pypy/pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64.tar.bz2"
+        FILE="pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64.tar.bz2"
+        
+        # Download and install PyPy
+        cd /tmp
+        curl -O $URL
+        tar -xvjf $FILE  # Using bzip2 decompression (tar -xvjf for .tar.bz2 files)
+        sudo mv pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64 /opt/pypy${PYTHON_VERSION}-v${PYPY_VERSION}
+
+        # Create a symbolic link
+        sudo ln -s /opt/pypy${PYTHON_VERSION}-v${PYPY_VERSION}/bin/pypy3 /usr/local/bin/pypy${PYTHON_VERSION}
+
+        # Clean up
+        rm $FILE
+
+        # Verify the installation
+        $PYPY_BIN --version
     fi
 
-    echo "Installing PyPy $PYPY_VERSION for Python $PYTHON_VERSION..."
-
-    # PyPy URL with version numbers for Python and PyPy
-    URL="https://downloads.python.org/pypy/pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64.tar.bz2"
-    FILE="pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64.tar.bz2"
-    
-    # Download and install PyPy
-    cd /tmp
-    curl -O $URL
-    tar -xvjf $FILE  # Using bzip2 decompression (tar -xvjf for .tar.bz2 files)
-    sudo mv pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64 /opt/pypy${PYTHON_VERSION}-v${PYPY_VERSION}
-
-    # Create a symbolic link
-    sudo ln -s /opt/pypy${PYTHON_VERSION}-v${PYPY_VERSION}/bin/pypy3 /usr/local/bin/pypy${PYTHON_VERSION}
-
-    # Clean up
-    rm $FILE
-
-    # Verify the installation
-    $PYPY_BIN --version
+    # Install pyperformance if not already installed for the specific PyPy version
+    if ! $PYPY_BIN -m pip show pyperformance &>/dev/null; then
+        echo "Installing pyperformance for $PYPY_BIN..."
+        $PYPY_BIN -m pip install pyperformance
+    else
+        echo "pyperformance is already installed for $PYPY_BIN."
+    fi
 }
 
 # Install Python 3.9
