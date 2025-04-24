@@ -25,6 +25,9 @@ def run_benchmarks(otii, version, hostname, username, password):
     device.enable_channel('mp', True)
     device.enable_channel('mc', True)
 
+    # Get the active project
+    project = otii.get_active_project()
+
     try:
         # Create an SSH client
         ssh_client = paramiko.SSHClient()
@@ -36,14 +39,14 @@ def run_benchmarks(otii, version, hostname, username, password):
         print("Connection established.")
 
         # Execute the command
-        proj.start_recording()
+        project.start_recording()
         print(f"Running command: {command}")
         stdin, stdout, stderr = ssh_client.exec_command(command)
 
         # Wait for the command to complete and fetch outputs
         exit_status = stdout.channel.recv_exit_status()
         print(f"Command completed with exit status: {exit_status}")
-        proj.stop_recording()
+        project.stop_recording()
 
         # Print the standard output and error
         print("Standard Output:")
@@ -67,7 +70,8 @@ def run_benchmarks(otii, version, hostname, username, password):
     info = recording.get_channel_info(device.id, 'mp')
     statistics_mp = recording.get_channel_statistics(device.id, 'mp', info['from'], info['to'])
     
-
+    recording.rename(version)
+    
     # Print the statistics
     print(f'From:        {info["from"]} s')
     print(f'To:          {info["to"]} s')
@@ -76,13 +80,16 @@ def run_benchmarks(otii, version, hostname, username, password):
     print(f'Min:         {statistics_mp["min"]:.5} W')
     print(f'Max:         {statistics_mp["max"]:.5} W')
     print(f'Average:     {statistics_mp["average"]:.5} W')
+    duration = info["to"] - info["from"]
+    energy_joules = statistics_mp["average"] * duration
+    print(f'Energy:      {energy_joules:.5} J')
 
 
 def main():
     '''Connect to the Otii 3 application and run the measurement'''
     client = otii_client.OtiiClient()
     with client.connect() as otii:
-        run_benchmarks(otii, "3.9", "oskar", "10.7.7.176", "year1191")
+        run_benchmarks(otii, "python3.10", "10.7.7.176", "oskar", "year1191")
 
 if __name__ == '__main__':
     main()
