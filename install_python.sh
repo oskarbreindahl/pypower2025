@@ -44,47 +44,6 @@ install_python() {
     fi
 }
 
-# Function to install PyPy
-install_pypy() {
-    PYTHON_VERSION=$1
-    PYPY_VERSION=$2
-    PYPY_BIN="pypy${PYTHON_VERSION}"
-
-    # Check if PyPy is already installed
-    if command -v $PYPY_BIN &>/dev/null; then
-        echo "$PYPY_BIN is already installed."
-    else
-        echo "Installing PyPy $PYPY_VERSION for Python $PYTHON_VERSION..."
-
-        # PyPy URL with version numbers for Python and PyPy
-        URL="https://downloads.python.org/pypy/pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64.tar.bz2"
-        FILE="pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64.tar.bz2"
-        
-        # Download and install PyPy
-        cd /tmp
-        curl -O $URL
-        tar -xvjf $FILE  # Using bzip2 decompression (tar -xvjf for .tar.bz2 files)
-        sudo mv pypy${PYTHON_VERSION}-v${PYPY_VERSION}-linux64 /opt/pypy${PYTHON_VERSION}-v${PYPY_VERSION}
-
-        # Create a symbolic link
-        sudo ln -s /opt/pypy${PYTHON_VERSION}-v${PYPY_VERSION}/bin/pypy3 /usr/local/bin/pypy${PYTHON_VERSION}
-
-        # Clean up
-        rm $FILE
-
-        # Verify the installation
-        $PYPY_BIN --version
-    fi
-
-    # Install pyperformance if not already installed for the specific PyPy version
-    if ! $PYPY_BIN -m pip show pyperformance &>/dev/null; then
-        echo "Installing pyperformance for $PYPY_BIN..."
-        $PYPY_BIN -m pip install pyperformance
-    else
-        echo "pyperformance is already installed for $PYPY_BIN."
-    fi
-}
-
 run_benchmarks() {
     PYTHON_VERSION=$1
     PYTHON_PATH=$2 
@@ -94,16 +53,16 @@ run_benchmarks() {
 # Install Python 3.9
 install_python "3.9.15"
 
+# Install Python 3.10
+install_python "3.10.0"
+
+# Install Python 3.11
+install_python "3.11.0"
+
 # Install Python 3.12
 install_python "3.12.0"
 
 # Install Python 3.13
 install_python "3.13.0"
-
-# Install PyPy for Python 3.9 (v7.3.9 is the stable version)
-install_pypy "3.9" "7.3.9"
-
-# Install PyPy for Python 3.11 (v7.3.19 is the latest stable version)
-install_pypy "3.11" "7.3.19"
 
 echo "Installation complete!"
