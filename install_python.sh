@@ -30,6 +30,7 @@ install_python() {
         cd ..
         rm -rf Python-$VERSION
         rm Python-$VERSION.tgz
+        $VERSION -m ensurepip
 
         # Verify the installation
         $PYTHON_BIN --version
