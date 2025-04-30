@@ -6,9 +6,7 @@ install_python() {
     PYTHON_BIN="python${VERSION%.*}"
 
     # Check if the version is already installed
-    if command -v $PYTHON_BIN &>/dev/null; then
-        echo "$PYTHON_BIN is already installed."
-    else
+
         echo "Installing Python $VERSION..."
 
         # Update package list
@@ -34,7 +32,7 @@ install_python() {
 
         # Verify the installation
         $PYTHON_BIN --version
-    fi
+    
 
     # Install pyperformance if not already installed for the specific Python version
     if ! $PYTHON_BIN -m pip show pyperformance &>/dev/null; then
