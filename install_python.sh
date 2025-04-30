@@ -6,39 +6,35 @@ install_python() {
     PYTHON_BIN="/usr/local/bin/python${VERSION%.*}"
 
     # Check if the version is already installed
-    if [ -x "$PYTHON_BIN" ]; then
-        echo "$PYTHON_BIN is already installed."
-    else
-        echo "Installing Python $VERSION with optimizations..."
+    echo "Installing Python $VERSION with optimizations..."
 
-        # Update package list
-        sudo apt update
+    # Update package list
+    sudo apt update
 
-        # Install build dependencies
-        sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
-            libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget \
-            curl xz-utils tk-dev liblzma-dev uuid-dev libbz2-dev
+    # Install build dependencies
+    sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
+        libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget \
+        curl xz-utils tk-dev liblzma-dev uuid-dev libbz2-dev
 
-        # Download and compile Python
-        cd /tmp
-        curl -O https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
-        tar -xvzf Python-$VERSION.tgz
-        cd Python-$VERSION
+    # Download and compile Python
+    cd /tmp
+    curl -O https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
+    tar -xvzf Python-$VERSION.tgz
+    cd Python-$VERSION
 
-        ./configure --enable-optimizations --with-lto
-        make -j "$(nproc)" profile-opt  # Uses PGO
-        sudo make altinstall
+    ./configure --enable-optimizations --with-lto
+    make -j "$(nproc)" profile-opt  # Uses PGO
+    sudo make altinstall
 
-        # Clean up
-        cd ..
-        rm -rf Python-$VERSION Python-$VERSION.tgz
+    # Clean up
+    cd ..
+    rm -rf Python-$VERSION Python-$VERSION.tgz
 
-        # Ensure pip is installed
-        $PYTHON_BIN -m ensurepip
+    # Ensure pip is installed
+    $PYTHON_BIN -m ensurepip
 
-        # Verify installation
-        $PYTHON_BIN --version
-    fi
+    # Verify installation
+    $PYTHON_BIN --version
 
     # Install pyperformance if not already installed
     if ! $PYTHON_BIN -m pip show pyperformance &>/dev/null; then
