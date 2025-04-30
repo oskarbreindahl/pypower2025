@@ -1,42 +1,49 @@
 #!/bin/bash
 
-# Function to install a specific Python version
+# Function to install a specific Python version with optimizations
 install_python() {
     VERSION=$1
-    PYTHON_BIN="python${VERSION%.*}"
+    PYTHON_BIN="/usr/local/bin/python${VERSION%.*}"
 
     # Check if the version is already installed
-
-        echo "Installing Python $VERSION..."
+    if [ -x "$PYTHON_BIN" ]; then
+        echo "$PYTHON_BIN is already installed."
+    else
+        echo "Installing Python $VERSION with optimizations..."
 
         # Update package list
         sudo apt update
 
-        # Install dependencies
-        sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev curl
+        # Install build dependencies
+        sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
+            libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget \
+            curl xz-utils tk-dev liblzma-dev uuid-dev libbz2-dev
 
-        # Download and install the specified Python version
+        # Download and compile Python
         cd /tmp
         curl -O https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
         tar -xvzf Python-$VERSION.tgz
         cd Python-$VERSION
-        ./configure --enable-optimizations
-        make -j "$(nproc)"
+
+        ./configure --enable-optimizations --with-lto
+        make -j "$(nproc)" profile-opt  # Uses PGO
         sudo make altinstall
 
         # Clean up
         cd ..
-        rm -rf Python-$VERSION
-        rm Python-$VERSION.tgz
-        $VERSION -m ensurepip
+        rm -rf Python-$VERSION Python-$VERSION.tgz
 
-        # Verify the installation
+        # Ensure pip is installed
+        $PYTHON_BIN -m ensurepip
+
+        # Verify installation
         $PYTHON_BIN --version
-    
+    fi
 
-    # Install pyperformance if not already installed for the specific Python version
+    # Install pyperformance if not already installed
     if ! $PYTHON_BIN -m pip show pyperformance &>/dev/null; then
         echo "Installing pyperformance for $PYTHON_BIN..."
+        $PYTHON_BIN -m pip install --upgrade pip
         $PYTHON_BIN -m pip install pyperformance
     else
         echo "pyperformance is already installed for $PYTHON_BIN."
@@ -46,22 +53,15 @@ install_python() {
 run_benchmarks() {
     PYTHON_VERSION=$1
     PYTHON_PATH=$2 
-    $PYTHON_VERSION -m pyperformance run --benchmarks=2to3,chameleon,tornado_http --python=$PYTHON_PATH -o $PYTHON_VERSION.json
+    $PYTHON_VERSION -m pyperformance run --benchmarks=2to3,chameleon,tornado_http \
+        --python=$PYTHON_PATH -o ${PYTHON_VERSION}.json
 }
 
-# Install Python 3.9
+# Install Python versions with optimizations
 install_python "3.9.22"
-
-# Install Python 3.10
 install_python "3.10.17"
-
-# Install Python 3.11
 install_python "3.11.12"
-
-# Install Python 3.12
 install_python "3.12.10"
-
-# Install Python 3.13
 install_python "3.13.3"
 
 echo "Installation complete!"
