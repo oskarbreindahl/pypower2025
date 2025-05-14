@@ -12,10 +12,10 @@ install_python() {
         echo "Installing Python $VERSION with optimizations..."
 
         # Update package list (apk doesn't need update in the same way as apt)
-        sudo apk update
+        apk update
 
         # Install build dependencies (for Alpine)
-        sudo apk add --no-cache build-base zlib-dev ncurses-dev gdbm-dev \
+        apk add --no-cache build-base zlib-dev ncurses-dev gdbm-dev \
             libnss3-dev openssl-dev readline-dev libffi-dev sqlite-dev \
             wget curl xz tk-dev liblzma-dev uuid-dev bzip2-dev
 
@@ -27,7 +27,7 @@ install_python() {
 
         ./configure --enable-optimizations --with-lto
         make -j "$(nproc)" profile-opt  # Uses PGO
-        sudo make altinstall
+        make altinstall
 
         # Clean up
         cd ..
