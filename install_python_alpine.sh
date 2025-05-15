@@ -6,39 +6,41 @@ install_python() {
     PYTHON_BIN="/usr/local/bin/python${VERSION%.*}"
 
     # Check if the version is already installed
-    if [ -x "$PYTHON_BIN" ] && [[ "$($PYTHON_BIN --version 2>&1)" == *"$VERSION"* ]]; then
-        echo "Python $VERSION is already installed."
-    else
-        echo "Installing Python $VERSION with optimizations..."
 
-        # Update package list (apk doesn't need update in the same way as apt)
-        apk update
+    echo "Installing Python $VERSION with optimizations..."
 
-        # Install build dependencies (for Alpine)
-        apk add --no-cache build-base zlib-dev ncurses-dev gdbm-dev \
-            libnss3-dev openssl-dev readline-dev libffi-dev sqlite-dev \
-            wget curl xz tk-dev liblzma-dev uuid-dev bzip2-dev
+    # Update package list (apk doesn't need update in the same way as apt)
+    apk update
 
-        # Download and compile Python
-        cd /tmp
-        curl -O https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
-        tar -xvzf Python-$VERSION.tgz
-        cd Python-$VERSION
+    # Install build dependencies (for Alpine)
+    apk add --no-cache build-base zlib-dev ncurses-dev gdbm-dev \
+        libnss3-dev openssl-dev readline-dev libffi-dev sqlite-dev \
+        wget curl xz tk-dev liblzma-dev uuid-dev bzip2-dev
 
-        ./configure --enable-optimizations --with-lto
-        make -j "$(nproc)" profile-opt  # Uses PGO
-        make altinstall
+    # Download and compile Python
+    cd /tmp
+    curl -O https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
+    tar -xvzf Python-$VERSION.tgz
+    cd Python-$VERSION
 
-        # Clean up
-        cd ..
-        rm -rf Python-$VERSION Python-$VERSION.tgz
+    # Configure the build with the necessary flags
+    ./configure --prefix=/usr/local --enable-optimizations --with-lto --with-ensurepip
 
-        # Ensure pip is installed
-        $PYTHON_BIN -m ensurepip
+    # Build Python with profile-guided optimizations (PGO)
+    make -j "$(nproc)" profile-opt
 
-        # Verify installation
-        $PYTHON_BIN --version
-    fi
+    # Install Python
+    make altinstall
+
+    # Clean up
+    cd ..
+    rm -rf Python-$VERSION Python-$VERSION.tgz
+
+    # Ensure pip is installed
+    $PYTHON_BIN -m ensurepip
+
+    # Verify installation
+    $PYTHON_BIN --version
 
     # Install pyperformance if not already installed
     if ! $PYTHON_BIN -m pip show pyperformance &>/dev/null; then
