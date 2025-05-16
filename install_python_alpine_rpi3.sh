@@ -84,3 +84,16 @@ install_python() {
     # 5) cleanup
     cd /tmp
     rm -rf Python-$VERSION Python-$VERSION.tgz
+
+    log "Tearing down swap"
+    swapoff "$SWAPFILE" || echo "swapoff warnings"
+    rm -f "$SWAPFILE"
+
+    # 6) final checks
+    log "Upgrading pip and verifying"
+    /usr/local/bin/python${VERSION%.*} -m ensurepip --upgrade
+    /usr/local/bin/python${VERSION%.*} --version
+}
+
+install_python "3.13.3"
+log "All done!"
