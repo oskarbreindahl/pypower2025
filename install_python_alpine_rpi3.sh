@@ -1,56 +1,86 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
+
+log() { echo -e "\n>>> $1\n"; }
 
 install_python() {
     VERSION=$1
     PYTHON_BIN="/usr/local/bin/python${VERSION%.*}"
 
+    # already installed?
     if [ -x "$PYTHON_BIN" ] && [[ "$($PYTHON_BIN --version 2>&1)" == *"$VERSION"* ]]; then
-        echo "Python $VERSION is already installed."
+        log "Python $VERSION is already installed."
         return
     fi
 
-    echo "Installing Python $VERSION with optimizations..."
+    log "Installing Python $VERSION with optimizations..."
 
+    # 1) create swap if needed
     SWAPFILE=/swapfile
-    # Only make swap if it's not already active
     if ! grep -q "^$SWAPFILE" /proc/swaps; then
-        echo ">>> Creating 1G swap file at $SWAPFILE"
-        fallocate -l 1G "$SWAPFILE" || dd if=/dev/zero of="$SWAPFILE" bs=1M count=1024
+        log "Creating 1G swap at $SWAPFILE"
+        if ! fallocate -l 1G "$SWAPFILE" 2>/dev/null; then
+            log "fallocate missing – falling back to dd"
+            dd if=/dev/zero of="$SWAPFILE" bs=1M count=1024 status=none
+        fi
         chmod 600 "$SWAPFILE"
         mkswap "$SWAPFILE"
         swapon "$SWAPFILE"
+    else
+        log "Swap file already active, skipping creation"
     fi
 
-    apk update
-    apk add --no-cache build-base zlib-dev ncurses-dev gdbm-dev \
-        libnss3-dev openssl-dev readline-dev libffi-dev sqlite-dev \
-        wget curl xz tk-dev liblzma-dev uuid-dev bzip2-dev
+    # 2) update + install deps
+    log "Updating apk index"
+    apk update || { echo "apk update failed"; exit 1; }
 
+    log "Installing build dependencies"
+    apk add --no-cache \
+        build-base \
+        zlib-dev \
+        ncurses-dev \
+        gdbm-dev \
+        nss-dev \
+        openssl-dev \
+        readline-dev \
+        libffi-dev \
+        sqlite-dev \
+        wget \
+        curl \
+        xz-dev \
+        tk-dev \
+        util-linux-dev \
+        bzip2-dev \
+        linux-headers \
+    || { echo "apk add failed"; exit 1; }
+
+    # 3) download & extract
     cd /tmp
-    curl -O https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
-    tar -xzf Python-$VERSION.tgz
-    cd Python-$VERSION
+    log "Downloading Python-$VERSION"
+    curl -fsSLO https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz \
+        || { echo "curl download failed"; exit 1; }
 
+    log "Extracting archive"
+    tar -xzf Python-$VERSION.tgz
+
+    # 4) configure & build
+    cd Python-$VERSION
+    log "Configuring (no LTO)"
     ./configure \
         --prefix=/usr/local \
         --enable-optimizations \
         --with-ensurepip \
-        --without-lto
+        --without-lto \
+    || { echo "configure failed"; exit 1; }
 
-    MAKEFLAGS="-j1" make profile-opt
-    make altinstall
+    log "Building with PGO (MAKEFLAGS=\"-j1\")"
+    MAKEFLAGS="-j1" make profile-opt \
+        || { echo "make profile-opt failed"; exit 1; }
 
+    log "Installing"
+    make altinstall \
+        || { echo "make altinstall failed"; exit 1; }
+
+    # 5) cleanup
     cd /tmp
     rm -rf Python-$VERSION Python-$VERSION.tgz
-
-    echo ">>> Tearing down swap"
-    swapoff "$SWAPFILE"
-    rm -f "$SWAPFILE"
-
-    $PYTHON_BIN -m ensurepip --upgrade
-    $PYTHON_BIN --version
-}
-
-install_python "3.13.3"
-echo "Installation complete!"
