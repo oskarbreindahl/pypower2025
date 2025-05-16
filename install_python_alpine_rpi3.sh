@@ -34,26 +34,6 @@ install_python() {
     log "Updating apk index"
     apk update || { echo "apk update failed"; exit 1; }
 
-    log "Installing build dependencies"
-    apk add --no-cache \
-        build-base \
-        zlib-dev \
-        ncurses-dev \
-        gdbm-dev \
-        nss-dev \
-        openssl-dev \
-        readline-dev \
-        libffi-dev \
-        sqlite-dev \
-        wget \
-        curl \
-        xz-dev \
-        tk-dev \
-        util-linux-dev \
-        bzip2-dev \
-        linux-headers \
-    || { echo "apk add failed"; exit 1; }
-
     # 3) download & extract
     cd /tmp
     log "Downloading Python-$VERSION"
